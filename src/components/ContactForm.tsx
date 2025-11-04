@@ -52,13 +52,29 @@ const ContactForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate form submission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to send message");
+      }
+
       toast.success("Message sent successfully! We'll get back to you soon.");
       form.reset();
     } catch (error) {
-      toast.error("Failed to send message. Please try again.");
+      console.error("Error submitting form:", error);
+      toast.error(
+        error instanceof Error 
+          ? error.message 
+          : "Failed to send message. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
