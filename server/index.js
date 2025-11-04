@@ -163,6 +163,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve static files from the React app build directory (in production)
+const distPath = path.resolve(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// Catch all handler: send back React's index.html file for client-side routing
+// This must be last, after all API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
