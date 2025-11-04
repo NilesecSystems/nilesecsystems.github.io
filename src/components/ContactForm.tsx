@@ -52,17 +52,37 @@ const ContactForm = () => {
     setIsSubmitting(true);
     
     try {
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        let errorMessage = "Failed to send message";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
       const result = await response.json();
 
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error(result.error || "Failed to send message");
       }
 
@@ -70,11 +90,17 @@ const ContactForm = () => {
       form.reset();
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast.error(
-        error instanceof Error 
-          ? error.message 
-          : "Failed to send message. Please try again."
-      );
+      
+      let errorMessage = "Failed to send message. Please try again.";
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Request timed out. Please check your connection and try again.";
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -21,8 +21,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? true // Allow all origins in production (or specify your domain)
+    : true,
+  credentials: true
+}));
 app.use(express.json());
+
+// Logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // Validate environment variables
 if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
@@ -61,8 +72,11 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
 // Contact form endpoint
 app.post('/api/contact', async (req, res) => {
   try {
+    console.log('📧 Contact form submission received');
+    
     // Check if email credentials are configured
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+      console.error('❌ Email credentials missing');
       return res.status(500).json({ 
         success: false, 
         error: 'Email service not configured. Please check server configuration.' 
@@ -70,6 +84,7 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const { name, email, phone, serviceType, message } = req.body;
+    console.log('📝 Form data:', { name, email, phone, serviceType, messageLength: message?.length });
 
     // Validate required fields
     if (!name || !email || !serviceType || !message) {
@@ -165,12 +180,42 @@ app.get('/api/health', (req, res) => {
 
 // Serve static files from the React app build directory (in production)
 const distPath = path.resolve(__dirname, '..', 'dist');
-app.use(express.static(distPath));
+
+// Serve static assets (images, CSS, JS, etc.) with proper caching
+app.use(express.static(distPath, {
+  maxAge: '1y',
+  etag: true,
+  index: false // Don't serve index.html for directories
+}));
+
+// Serve index.html for root path
+app.get('/', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
 
 // Catch all handler: send back React's index.html file for client-side routing
-// This must be last, after all API routes
+// This must be last, after all API routes and static files
+// Only match non-API, non-static file routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  // Skip API routes (should already be handled above, but just in case)
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  
+  // Skip static file extensions (these should be handled by express.static)
+  const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot'];
+  const hasStaticExtension = staticExtensions.some(ext => req.path.toLowerCase().endsWith(ext));
+  if (hasStaticExtension) {
+    return res.status(404).send('File not found');
+  }
+  
+  // Send index.html for SPA routes
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error sending index.html:', err);
+      res.status(500).send('Error loading page');
+    }
+  });
 });
 
 // Start server
