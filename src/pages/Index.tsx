@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import ServiceCard from "@/components/ServiceCard";
-import ContactForm from "@/components/ContactForm";
 import { Button } from "@/components/ui/button";
 import { 
   Building2, 
@@ -16,6 +15,89 @@ import {
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import heroImage from "@/assets/hero-dark-modern.jpg";
 import logo from "@/assets/nilesec-logo.png";
+import { useState } from "react";
+
+const ContactForm = () => {
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: formData
+      });
+      const result = await response.json();
+      if (result.success) {
+        setSubmitted(true);
+        e.currentTarget.reset();
+      } else {
+        alert("Error submitting form. Please try again.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error submitting form. Please try again.");
+    }
+  };
+
+  return (
+    <>
+      {submitted ? (
+        <p className="text-green-500 font-semibold text-center">
+          Thank you! Your message has been sent.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Web3Forms API key */}
+          <input type="hidden" name="access_key" value="67cf63f3-65aa-4c42-b209-8f6d0f24440d" />
+          
+          {/* Honeypot field for spam protection */}
+          <input type="text" name="honeypot" style={{ display: "none" }} />
+
+          <div>
+            <label className="block mb-2 font-semibold">Name</label>
+            <input
+              type="text"
+              name="name"
+              required
+              className="w-full p-3 border border-border rounded-lg"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-semibold">Email</label>
+            <input
+              type="email"
+              name="email"
+              required
+              className="w-full p-3 border border-border rounded-lg"
+            />
+          </div>
+
+          <div>
+            <label className="block mb-2 font-semibold">Message</label>
+            <textarea
+              name="message"
+              required
+              rows={5}
+              className="w-full p-3 border border-border rounded-lg"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-accent transition-colors"
+          >
+            Send Message
+          </button>
+        </form>
+      )}
+    </>
+  );
+};
 
 const Index = () => {
   const businessSection = useScrollAnimation();
@@ -216,7 +298,7 @@ const Index = () => {
             </p>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
-              {[
+              {[ 
                 { icon: CheckCircle2, label: "24/7 Reliable Support" },
                 { icon: MapPin, label: "Local Expertise" },
                 { icon: Zap, label: "Flexible & Scalable" },
