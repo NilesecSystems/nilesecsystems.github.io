@@ -24,13 +24,25 @@ import { toast } from "sonner";
 import { Send } from "lucide-react";
 
 const formSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
-  email: z.string().trim().email("Invalid email address").max(255, "Email must be less than 255 characters"),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters"),
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email address")
+    .max(255, "Email must be less than 255 characters"),
   phone: z.string().trim().max(20, "Phone must be less than 20 characters").optional(),
   serviceType: z.enum(["Business IT", "Residential IT"], {
     required_error: "Please select a service type",
   }),
-  message: z.string().trim().min(1, "Message is required").max(1000, "Message must be less than 1000 characters"),
+  message: z
+    .string()
+    .trim()
+    .min(1, "Message is required")
+    .max(1000, "Message must be less than 1000 characters"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -45,62 +57,38 @@ const ContactForm = () => {
       email: "",
       phone: "",
       message: "",
+      serviceType: undefined, // Fix for Zod enum type
     },
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    
-    try {
-      // Create an AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-      
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
 
-      // Check if response is ok before trying to parse JSON
-      if (!response.ok) {
-        let errorMessage = "Failed to send message";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          // If response is not JSON, use status text
-          errorMessage = response.statusText || errorMessage;
-        }
-        throw new Error(errorMessage);
-      }
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_key: "67cf63f3-65aa-4c42-b209-8f6d0f24440d",
+          ...data,
+        }),
+      });
 
       const result = await response.json();
 
-      if (!result.success) {
-        throw new Error(result.error || "Failed to send message");
+      if (result.success) {
+        toast.success("Message sent successfully! We'll get back to you soon.");
+        form.reset();
+      } else {
+        throw new Error(result.message || "Failed to send message");
       }
-
-      toast.success("Message sent successfully! We'll get back to you soon.");
-      form.reset();
     } catch (error) {
-      console.error("Error submitting form:", error);
-      
-      let errorMessage = "Failed to send message. Please try again.";
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = "Request timed out. Please check your connection and try again.";
-        } else {
-          errorMessage = error.message || errorMessage;
-        }
-      }
-      
-      toast.error(errorMessage);
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to send message. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +105,11 @@ const ContactForm = () => {
               <FormItem>
                 <FormLabel>Name *</FormLabel>
                 <FormControl>
-                  <Input placeholder="John Doe" {...field} />
+                  <Input
+                    placeholder="John Doe"
+                    className="bg-gray-800 text-white placeholder:text-gray-400"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -130,7 +122,12 @@ const ContactForm = () => {
               <FormItem>
                 <FormLabel>Email *</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="john@example.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    className="bg-gray-800 text-white placeholder:text-gray-400"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -146,7 +143,12 @@ const ContactForm = () => {
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                  <Input
+                    type="tel"
+                    placeholder="(123) 456-7890"
+                    className="bg-gray-800 text-white placeholder:text-gray-400"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -158,9 +160,12 @@ const ContactForm = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Service Type *</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 text-white placeholder:text-gray-400">
                       <SelectValue placeholder="Select service type" />
                     </SelectTrigger>
                   </FormControl>
@@ -184,7 +189,7 @@ const ContactForm = () => {
               <FormControl>
                 <Textarea
                   placeholder="Tell us about your IT needs..."
-                  className="min-h-[150px] resize-none"
+                  className="min-h-[150px] resize-none bg-gray-800 text-white placeholder:text-gray-400"
                   {...field}
                 />
               </FormControl>
