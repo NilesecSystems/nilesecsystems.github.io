@@ -264,7 +264,9 @@ const Index = () => {
                 <Phone className="h-8 w-8 text-accent flex-shrink-0" />
                 <div>
                   <p className="font-semibold text-card-foreground">Phone</p>
-                  <p className="text-sm text-muted-foreground">Available 24/7</p>
+                  <a href="tel:(201) 922-6774" className="text-sm text-primary hover:text-accent transition-colors">
+                    (201) 922-6774
+                  </a>
                 </div>
               </div>
               <div className="flex items-center gap-4 p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-all hover:scale-105">
